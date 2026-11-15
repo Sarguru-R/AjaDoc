@@ -8,6 +8,4 @@ __pycache__
 
 # Local PM2 setup (not part of the repo)
 ecosystem.config.cjs
-
-# Demo video and narration script (large file; upload the video to YouTube/Loom instead)
-demo-video/
+demo-video/DEMO_SCRIPT.md
