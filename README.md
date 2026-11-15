@@ -109,16 +109,24 @@ In Compose only the frontend and gateway are published; the auth and document se
 | `SEED_DEMO_DATA`       | `true`                    | auth, documents    | Seed test accounts and welcome document         |
 | `APP_ENV`              | `development`             | all                | `production` refuses to start without both keys |
 
-## Deployment (Render, free)
+## Deployment (free): backend on Render, frontend on Vercel
 
-1. Push this repo to GitHub. In Render: **New → Blueprint** → pick the repo. `render.yaml` creates four services: `ajadoc-auth`, `ajadoc-documents`, `ajadoc-gateway` (Python) and `ajadoc-web` (static site). `SECRET_KEY` and `INTERNAL_API_KEY` are generated once and shared through an environment group.
-2. When prompted (or afterwards under each service's **Environment**), set the URLs using the `onrender.com` addresses Render assigned:
-   - documents: `AUTH_SERVICE_URL` = auth service URL
-   - gateway: `AUTH_SERVICE_URL`, `DOCUMENT_SERVICE_URL`, and `CORS_ORIGINS` = the static site URL
-   - web: `VITE_API_URL` = gateway URL, then **Manual Deploy → Clear cache & deploy** so the build picks it up
-3. Open `<gateway URL>/api/health`. It should report both services as `true`.
+The backend is three long-running services with SQLite and in-memory presence, so it runs on Render (normal servers). Serverless platforms like Vercel can't keep the SQLite files or the presence data between requests. The frontend is a static build, which Vercel hosts well.
 
-Notes: free instances sleep when idle, so the first request after a pause can take up to a minute while services wake. Free instances also have no persistent disk, so data resets to the seeded state when an instance restarts.
+**1. Backend on Render**
+1. Render → **New → Blueprint** → pick this repo. `render.yaml` creates `ajadoc-auth`, `ajadoc-documents` and `ajadoc-gateway`, and generates the shared `SECRET_KEY` / `INTERNAL_API_KEY`.
+2. After the first deploy, open each service's **Environment** tab and set these, using the `onrender.com` URLs Render assigned:
+   - `ajadoc-documents`: `AUTH_SERVICE_URL` = auth service URL
+   - `ajadoc-gateway`: `AUTH_SERVICE_URL`, `DOCUMENT_SERVICE_URL`, and `CORS_ORIGINS` = your Vercel URL (step 2)
+3. Check `<gateway URL>/api/health`. It should show both services as `true`.
+
+**2. Frontend on Vercel**
+1. Vercel → **Add New → Project** → import this repo.
+2. Set **Root Directory** to `frontend`. `frontend/vercel.json` sets up the Vite build and page routing.
+3. Add the environment variable `VITE_API_URL` = your Render gateway URL (e.g. `https://ajadoc-gateway.onrender.com`), then deploy.
+4. Put the Vercel URL into the gateway's `CORS_ORIGINS` on Render (step 1.2) and redeploy the gateway.
+
+Notes: free Render services sleep when idle, so the first request after a pause can take up to a minute. Their disk isn't permanent, so data resets to the seeded demo accounts when a service restarts or redeploys.
 
 ## Project layout
 

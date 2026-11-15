@@ -1,6 +1,7 @@
-# Render Blueprint: New -> Blueprint -> select this repo.
-# Creates 3 Python web services and 1 static site. The shared keys are generated once in an env group.
+# Render Blueprint for the backend: New -> Blueprint -> select this repo.
+# Creates the 3 Python services (gateway, auth, documents). The shared keys are generated once in an env group.
 # After the first deploy, fill in the URL variables marked `sync: false` (see README "Deployment").
+# The frontend is deployed separately on Vercel (frontend/vercel.json).
 envVarGroups:
   - name: ajadoc-keys
     envVars:
@@ -52,19 +53,5 @@ services:
         sync: false
       - key: DOCUMENT_SERVICE_URL # e.g. https://ajadoc-documents.onrender.com
         sync: false
-      - key: CORS_ORIGINS # e.g. https://ajadoc-web.onrender.com
-        sync: false
-
-  - type: web
-    name: ajadoc-web
-    runtime: static
-    rootDir: frontend
-    buildCommand: npm ci && npm run build
-    staticPublishPath: dist
-    routes:
-      - type: rewrite
-        source: /*
-        destination: /index.html
-    envVars:
-      - key: VITE_API_URL # e.g. https://ajadoc-gateway.onrender.com
+      - key: CORS_ORIGINS # your Vercel URL, e.g. https://aja-doc.vercel.app
         sync: false
