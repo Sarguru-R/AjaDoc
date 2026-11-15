@@ -1,0 +1,13 @@
+node_modules
+dist
+data
+.env
+.venv
+__pycache__
+.pytest_cache
+
+# Local PM2 setup (not part of the repo)
+ecosystem.config.cjs
+
+# Demo video and narration script (large file; upload the video to YouTube/Loom instead)
+demo-video/

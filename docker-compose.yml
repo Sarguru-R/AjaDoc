@@ -1,0 +1,40 @@
+# Full stack: each service in its own container.
+#   docker compose up --build    ->  frontend http://localhost:5173, gateway http://localhost:8000
+# Only the gateway and the frontend are published; the auth and document services are reachable
+# only on the internal network, and they also require the internal key.
+#
+# Set real keys in a .env file next to this file (see backend/.env.example), or export them.
+
+x-backend-env: &backend-env
+  SECRET_KEY: ${SECRET_KEY:?set SECRET_KEY}
+  INTERNAL_API_KEY: ${INTERNAL_API_KEY:?set INTERNAL_API_KEY}
+  AUTH_SERVICE_URL: http://auth:8000
+  DOCUMENT_SERVICE_URL: http://documents:8000
+  CORS_ORIGINS: http://localhost:5173,http://127.0.0.1:5173
+
+services:
+  auth:
+    build: { context: ./backend, args: { SERVICE: auth_service } }
+    environment: *backend-env
+    volumes: [auth-data:/app/data]
+
+  documents:
+    build: { context: ./backend, args: { SERVICE: document_service } }
+    environment: *backend-env
+    volumes: [documents-data:/app/data]
+    depends_on: [auth]
+
+  gateway:
+    build: { context: ./backend, args: { SERVICE: gateway } }
+    environment: *backend-env
+    ports: ["8000:8000"]
+    depends_on: [auth, documents]
+
+  frontend:
+    build: { context: ./frontend, args: { VITE_API_URL: "http://localhost:8000" } }
+    ports: ["5173:80"]
+    depends_on: [gateway]
+
+volumes:
+  auth-data:
+  documents-data:

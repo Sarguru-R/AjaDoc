@@ -1,0 +1,70 @@
+# Render Blueprint: New -> Blueprint -> select this repo.
+# Creates 3 Python web services and 1 static site. The shared keys are generated once in an env group.
+# After the first deploy, fill in the URL variables marked `sync: false` (see README "Deployment").
+envVarGroups:
+  - name: ajadoc-keys
+    envVars:
+      - key: SECRET_KEY
+        generateValue: true
+      - key: INTERNAL_API_KEY
+        generateValue: true
+      - key: APP_ENV
+        value: production
+      - key: PYTHON_VERSION
+        value: 3.12.8
+
+services:
+  - type: web
+    name: ajadoc-auth
+    runtime: python
+    plan: free
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn auth_service:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - fromGroup: ajadoc-keys
+
+  - type: web
+    name: ajadoc-documents
+    runtime: python
+    plan: free
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn document_service:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - fromGroup: ajadoc-keys
+      - key: AUTH_SERVICE_URL # e.g. https://ajadoc-auth.onrender.com
+        sync: false
+
+  - type: web
+    name: ajadoc-gateway
+    runtime: python
+    plan: free
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn gateway:app --host 0.0.0.0 --port $PORT --proxy-headers
+    healthCheckPath: /api/health
+    envVars:
+      - fromGroup: ajadoc-keys
+      - key: AUTH_SERVICE_URL # e.g. https://ajadoc-auth.onrender.com
+        sync: false
+      - key: DOCUMENT_SERVICE_URL # e.g. https://ajadoc-documents.onrender.com
+        sync: false
+      - key: CORS_ORIGINS # e.g. https://ajadoc-web.onrender.com
+        sync: false
+
+  - type: web
+    name: ajadoc-web
+    runtime: static
+    rootDir: frontend
+    buildCommand: npm ci && npm run build
+    staticPublishPath: dist
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: VITE_API_URL # e.g. https://ajadoc-gateway.onrender.com
+        sync: false
